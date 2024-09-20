@@ -1,28 +1,28 @@
-import { promises as fs } from "fs";
-import path from "path";
+import mongoose from "mongoose";
+import Item from "./models/Item"; // Adjust path as necessary
 
-const filePath = path.join(process.cwd(), "./data.json");
+const uri =
+  "mongodb+srv://rcbalaji:07070707@cluster0.bbw2v33.mongodb.net/next-todo?retryWrites=true&w=majority&appName=Cluster0";
 
-// Helper function to read JSON file
-const readData = async () => {
-  const jsonData = await fs.readFile(filePath);
-  return JSON.parse(jsonData);
-};
-
-// Helper function to write to JSON file
-const writeData = async (data) => {
-  await fs.writeFile(filePath, JSON.stringify(data, null, 2));
+const connectDB = async () => {
+  if (mongoose.connection.readyState === 0) {
+    await mongoose.connect(uri, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
+  }
 };
 
 // GET method handler
 export async function GET(request) {
+  await connectDB();
+
   try {
     const url = new URL(request.url);
     const id = url.searchParams.get("id");
-    const data = await readData();
 
     if (id) {
-      const item = data.find((item) => item.id === parseInt(id));
+      const item = await Item.findOne({ id: parseInt(id) });
       if (!item) {
         return new Response(JSON.stringify({ message: "Item not found" }), {
           status: 404,
@@ -34,12 +34,14 @@ export async function GET(request) {
         headers: { "Content-Type": "application/json" },
       });
     } else {
+      const data = await Item.find({});
       return new Response(JSON.stringify(data), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });
     }
   } catch (error) {
+    console.error("GET error:", error);
     return new Response(
       JSON.stringify({
         error: "Internal Server Error",
@@ -55,21 +57,23 @@ export async function GET(request) {
 
 // POST method handler
 export async function POST(request) {
+  await connectDB();
+
   try {
-    const newItem = await request.json(); // Use request.json() to parse the request body
-    const data = await readData();
-    newItem.id = data.length > 0 ? data[data.length - 1].id + 1 : 1;
-    data.push(newItem);
-    await writeData(data);
+    const newItem = await request.json();
+    newItem.id = (await Item.countDocuments()) + 1; // Generate a new ID
+    const item = new Item(newItem);
+    await item.save();
 
     return new Response(
-      JSON.stringify({ message: "Item added successfully", newItem }),
+      JSON.stringify({ message: "Item added successfully", newItem: item }),
       {
         status: 201,
         headers: { "Content-Type": "application/json" },
       }
     );
   } catch (error) {
+    console.error("POST error:", error);
     return new Response(
       JSON.stringify({
         error: "Internal Server Error",
@@ -85,31 +89,35 @@ export async function POST(request) {
 
 // PUT method handler
 export async function PUT(request) {
+  await connectDB();
+
   try {
-    const updatedItem = await request.json(); // Use request.json() to parse the request body
-    const data = await readData();
-    const index = data.findIndex(
-      (item) => item.id === parseInt(updatedItem.id)
+    const updatedItem = await request.json();
+    const item = await Item.findOneAndUpdate(
+      { id: parseInt(updatedItem.id) },
+      updatedItem,
+      { new: true }
     );
 
-    if (index === -1) {
+    if (!item) {
       return new Response(JSON.stringify({ message: "Item not found" }), {
         status: 404,
         headers: { "Content-Type": "application/json" },
       });
     }
 
-    data[index] = updatedItem;
-    await writeData(data);
-
     return new Response(
-      JSON.stringify({ message: "Item updated successfully", updatedItem }),
+      JSON.stringify({
+        message: "Item updated successfully",
+        updatedItem: item,
+      }),
       {
         status: 200,
         headers: { "Content-Type": "application/json" },
       }
     );
   } catch (error) {
+    console.error("PUT error:", error);
     return new Response(
       JSON.stringify({
         error: "Internal Server Error",
@@ -125,20 +133,19 @@ export async function PUT(request) {
 
 // DELETE method handler
 export async function DELETE(request) {
+  await connectDB();
+
   try {
     const url = new URL(request.url);
     const id = parseInt(url.searchParams.get("id"));
-    const data = await readData();
-    const newData = data.filter((item) => item.id !== id);
+    const item = await Item.findOneAndDelete({ id });
 
-    if (data.length === newData.length) {
+    if (!item) {
       return new Response(JSON.stringify({ message: "Item not found" }), {
         status: 404,
         headers: { "Content-Type": "application/json" },
       });
     }
-
-    await writeData(newData);
 
     return new Response(
       JSON.stringify({ message: "Item deleted successfully" }),
@@ -148,6 +155,7 @@ export async function DELETE(request) {
       }
     );
   } catch (error) {
+    console.error("DELETE error:", error);
     return new Response(
       JSON.stringify({
         error: "Internal Server Error",
