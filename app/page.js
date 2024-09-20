@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from "react";
 import styles from "./HomePage.module.css"; // Assuming CSS module approach
+import { useRouter } from "next/navigation";
 
 export default function HomePage() {
   const [items, setItems] = useState([]);
   const [newItem, setNewItem] = useState({ name: "", description: "" });
   const [editItem, setEditItem] = useState(null);
+  const nav = useRouter();
 
   // Fetch all items
   const fetchItems = async () => {
@@ -35,7 +37,7 @@ export default function HomePage() {
 
   // Edit an item
   const handleEdit = async () => {
-    const response = await fetch(`/api/items`, {
+    const response = await fetch("/api/items", {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -147,6 +149,9 @@ export default function HomePage() {
                 onClick={() => handleDelete(item.id)}
               >
                 Delete
+              </button>
+              <button onClick={() => nav.push(`/${item._id}`)}>
+                View Details
               </button>
             </div>
           </li>

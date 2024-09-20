@@ -1,8 +1,8 @@
 import mongoose from "mongoose";
-import Item from "./models/Item.js"; // Adjust path as necessary
+import Item from "../models/Item.js"; // Adjust path as necessary
 
 const uri =
-  "mongodb+srv://rcbalaji:07070707@cluster0.bbw2v33.mongodb.net/next-todo?retryWrites=true&w=majority&appName=Cluster0";
+  "mongodb+srv://rcbalaji:07070707@cluster0.bbw2v33.mongodb.net/next-todo1?retryWrites=true&w=majority&appName=Cluster0";
 
 const connectDB = async () => {
   if (mongoose.connection.readyState === 0) {
@@ -61,7 +61,7 @@ export async function POST(request) {
 
   try {
     const newItem = await request.json();
-    newItem.id = (await Item.countDocuments()) + 1; // Generate a new ID
+    // newItem.id = (await Item.countDocuments()) + 1; // Generate a new ID
     const item = new Item(newItem);
     await item.save();
 
