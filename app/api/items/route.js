@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import Item from "./models/Item"; // Adjust path as necessary
+import Item from "./models/Item.js"; // Adjust path as necessary
 
 const uri =
   "mongodb+srv://rcbalaji:07070707@cluster0.bbw2v33.mongodb.net/next-todo?retryWrites=true&w=majority&appName=Cluster0";
